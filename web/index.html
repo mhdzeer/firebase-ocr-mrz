@@ -23,15 +23,14 @@
       recognize: async function(imagePathOrBase64) {
         try {
           if (typeof _OriginalTesseract !== 'undefined') {
-            const result = await _OriginalTesseract.recognize(
-              imagePathOrBase64,
-              'eng+ara',
-              { logger: m => {} }
-            );
+            const worker = await _OriginalTesseract.createWorker('eng+ara');
+            const result = await worker.recognize(imagePathOrBase64);
+            await worker.terminate();
             return result.data.text;
           }
           return '';
         } catch (e) {
+          console.error('Tesseract recognize error:', e);
           return '';
         }
       }

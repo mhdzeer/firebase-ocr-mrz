@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -33,8 +35,14 @@ class _ScanScreenState extends State<ScanScreen> {
         setState(() => _isProcessing = false);
         return;
       }
-      setState(() => _previewPath = picked.path);
-      final result = await _processImage(picked.path);
+
+      final bytes = await picked.readAsBytes();
+      final base64 = base64Encode(bytes);
+      final mimeType = _mimeType(picked.name);
+      final dataUrl = 'data:$mimeType;base64,$base64';
+
+      setState(() => _previewPath = dataUrl);
+      final result = await _processImage(dataUrl);
       if (!mounted) return;
       if (result != null) {
         Navigator.push(
@@ -42,7 +50,7 @@ class _ScanScreenState extends State<ScanScreen> {
           MaterialPageRoute(
             builder: (_) => ResultsScreen(
               scanResult: result,
-              imagePath: picked.path,
+              imagePath: dataUrl,
             ),
           ),
         );
@@ -54,6 +62,14 @@ class _ScanScreenState extends State<ScanScreen> {
     } finally {
       setState(() => _isProcessing = false);
     }
+  }
+
+  String _mimeType(String fileName) {
+    final ext = fileName.split('.').last.toLowerCase();
+    if (ext == 'png') return 'image/png';
+    if (ext == 'jpg' || ext == 'jpeg') return 'image/jpeg';
+    if (ext == 'gif') return 'image/gif';
+    return 'image/jpeg';
   }
 
   Future<ScanResult?> _processImage(String imagePath) async {

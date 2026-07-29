@@ -7,7 +7,7 @@ class OcrService {
       if (tesseract == null) return '';
       final promise = js_util.callMethod(tesseract, 'recognize', [imagePathOrBase64]);
       final future = js_util.promiseToFuture(promise);
-      final result = await future;
+      final result = await future.timeout(const Duration(seconds: 120));
       final data = js_util.getProperty(result, 'data');
       final text = js_util.getProperty(data, 'text');
       return text?.toString() ?? '';
