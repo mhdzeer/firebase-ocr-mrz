@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:ocr_mrz/models/scan_result.dart';
 import 'package:ocr_mrz/services/firebase_service.dart';
@@ -84,7 +85,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _status ?? widget.scanResult.type == 'passport' ? 'Passport detected' : 'CPR ID detected',
+                      _status ?? (widget.scanResult.type == 'passport' ? 'Passport detected' : 'CPR ID detected'),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),

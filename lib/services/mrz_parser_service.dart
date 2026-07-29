@@ -1,24 +1,39 @@
 import 'dart:convert';
-import 'package:mrz_parser/mrz_parser.dart';
 
 class MrzParserService {
   Map<String, dynamic>? parsePassport(List<String> lines) {
     try {
-      final mrz = MrzParser([lines[0], lines[1]]);
-      final doc = mrz.getMrzInfo();
-      final birth = doc.birthDate;
-      final expiry = doc.expiryDate;
+      final line1 = lines[0].replaceAll(' ', '');
+      final line2 = lines[1].replaceAll(' ', '');
+
+      if (line1.length != 44 || line2.length != 44) return null;
+
+      final docType = line1.substring(0, 2);
+      final countryCode = line1.substring(2, 5);
+      final lastNameRaw = line1.substring(5, 44);
+      final lastName = lastNameRaw.replaceAll('<', ' ').trim();
+
+      final nameParts = lastName.split(' ').where((s) => s.isNotEmpty).toList();
+      final parsedLastName = nameParts.isNotEmpty ? nameParts.removeAt(0) : '';
+      final parsedFirstName = nameParts.join(' ');
+
+      final docNumber = line2.substring(0, 9);
+      final nationality = line2.substring(10, 13);
+      final birthDateRaw = line2.substring(13, 19);
+      final sex = line2.substring(20, 1);
+      final expiryDateRaw = line2.substring(21, 27);
+
       return {
         'documentType': 'passport',
-        'countryCode': doc.countryCode,
-        'lastName': doc.surname,
-        'firstName': doc.givenNames,
-        'documentNumber': doc.documentNumber,
-        'nationality': doc.nationality,
-        'birthDate': birth != null ? _formatDateMrz(birth) : '',
-        'sex': doc.gender?.toString().toLowerCase() ?? '',
-        'expirationDate': expiry != null ? _formatDateMrz(expiry) : '',
-        'optionalData': doc.optionalData,
+        'countryCode': countryCode,
+        'lastName': parsedLastName,
+        'firstName': parsedFirstName,
+        'documentNumber': docNumber,
+        'nationality': nationality,
+        'birthDate': _formatDate(birthDateRaw),
+        'sex': sex == 'M' ? 'male' : sex == 'F' ? 'female' : 'unknown',
+        'expirationDate': _formatDate(expiryDateRaw),
+        'optionalData': line2.length > 28 ? line2.substring(28) : '',
       };
     } catch (e) {
       return null;
@@ -64,10 +79,6 @@ class MrzParserService {
     final day = int.tryParse(yymmdd.substring(4, 6)) ?? 0;
     final fullYear = year > 50 ? 1900 + year : 2000 + year;
     return '${fullYear.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
-  }
-
-  String _formatDateMrz(DateTime date) {
-    return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
   Map<String, dynamic>? parse(List<String> lines) {
