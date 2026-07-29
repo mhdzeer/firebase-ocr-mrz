@@ -20,12 +20,12 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'YOUR-WEB-API-KEY',
-    appId: 'YOUR-WEB-APP-ID',
-    messagingSenderId: 'YOUR-SENDER-ID',
-    projectId: 'OCR-MRZ',
-    authDomain: 'OCR-MRZ.firebaseapp.com',
-    storageBucket: 'OCR-MRZ.appspot.com',
+    apiKey: 'AIzaSyAW9FAmjDvf3D5JhbOXLY1Bkax96Cbi4JY',
+    appId: '1:452665290767:web:937511bc9b015bb0a2337a',
+    messagingSenderId: '452665290767',
+    projectId: 'ocr-mrz-87733',
+    authDomain: 'ocr-mrz-87733.firebaseapp.com',
+    storageBucket: 'ocr-mrz-87733.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(

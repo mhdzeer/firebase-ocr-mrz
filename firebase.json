@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "ocr-mrz-87733",
     "public": "build/web",
     "ignore": [
       "firebase.json",
