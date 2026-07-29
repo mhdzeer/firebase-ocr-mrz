@@ -27,9 +27,8 @@ dependencies:
   intl: ^0.19.0
 
 dependency_overrides:
+  firebase_core_web: ^2.15.0
   firebase_auth_web: ^4.8.0
-  firebase_core_web: ^2.16.0
-  cloud_firestore_web: ^4.9.0
 
 dev_dependencies:
   flutter_test:
