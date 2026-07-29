@@ -1,16 +1,16 @@
-import 'dart:js' as js;
-import 'package:js/js.dart';
-
-@JS('Tesseract')
-class Tesseract {
-  external static Future<String> recognize(String imagePathOrBase64);
-}
+import 'dart:js_util' as js_util;
 
 class OcrService {
   Future<String> recognizeText(String imagePathOrBase64) async {
     try {
-      final result = await Tesseract.recognize(imagePathOrBase64);
-      return result as String;
+      final tesseract = js_util.getProperty(js_util.globalThis, 'Tesseract');
+      if (tesseract == null) return '';
+      final promise = js_util.callMethod(tesseract, 'recognize', [imagePathOrBase64]);
+      final future = js_util.promiseToFuture(promise);
+      final result = await future;
+      final data = js_util.getProperty(result, 'data');
+      final text = js_util.getProperty(data, 'text');
+      return text?.toString() ?? '';
     } catch (e) {
       return '';
     }
