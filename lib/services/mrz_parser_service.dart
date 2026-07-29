@@ -3,10 +3,14 @@ import 'dart:convert';
 class MrzParserService {
   Map<String, dynamic>? parsePassport(List<String> lines) {
     try {
-      final line1 = lines[0].replaceAll(' ', '');
-      final line2 = lines[1].replaceAll(' ', '');
+      final line1Raw = lines[0].replaceAll(' ', '');
+      final line2Raw = lines[1].replaceAll(' ', '');
 
-      if (line1.length != 44 || line2.length != 44) return null;
+      if (line1Raw.length < 41 || line1Raw.length > 47) return null;
+      if (line2Raw.length < 41 || line2Raw.length > 47) return null;
+
+      final line1 = line1Raw.padRight(44, '<').substring(0, 44);
+      final line2 = line2Raw.padRight(44, '<').substring(0, 44);
 
       final docType = line1.substring(0, 2);
       final countryCode = line1.substring(2, 5);
@@ -20,7 +24,7 @@ class MrzParserService {
       final docNumber = line2.substring(0, 9);
       final nationality = line2.substring(10, 13);
       final birthDateRaw = line2.substring(13, 19);
-      final sex = line2.substring(20, 1);
+      final sex = line2.substring(20, 21);
       final expiryDateRaw = line2.substring(21, 27);
 
       return {
@@ -42,16 +46,22 @@ class MrzParserService {
 
   Map<String, dynamic>? parseCpr(List<String> lines) {
     try {
-      final first = lines[0].replaceAll(' ', '');
-      final second = lines[1].replaceAll(' ', '');
-      final third = lines[2].replaceAll(' ', '');
+      final firstRaw = lines[0].replaceAll(' ', '');
+      final secondRaw = lines[1].replaceAll(' ', '');
+      final thirdRaw = lines[2].replaceAll(' ', '');
 
-      if (first.length != 30 || second.length != 30 || third.length != 30) return null;
+      if (firstRaw.length < 27 || firstRaw.length > 33) return null;
+      if (secondRaw.length < 27 || secondRaw.length > 33) return null;
+      if (thirdRaw.length < 27 || thirdRaw.length > 33) return null;
+
+      final first = firstRaw.padRight(30, '<').substring(0, 30);
+      final second = secondRaw.padRight(30, '<').substring(0, 30);
+      final third = thirdRaw.padRight(30, '<').substring(0, 30);
 
       final docNumber = first.substring(0, 9);
       final nationality = first.substring(10, 13);
       final birthDate = first.substring(13, 19);
-      final sex = first.substring(20, 1);
+      final sex = first.substring(20, 21);
       final expiryDate = first.substring(21, 27);
 
       final lastName = second.substring(0, 29).replaceAll('<', ' ').trim();
@@ -82,11 +92,17 @@ class MrzParserService {
   }
 
   Map<String, dynamic>? parse(List<String> lines) {
-    if (lines.length >= 2 && lines[0].replaceAll(' ', '').length == 44) {
-      return parsePassport(lines);
+    if (lines.length >= 2) {
+      final first = lines[0].replaceAll(' ', '');
+      if (first.length >= 41 && first.length <= 47) {
+        return parsePassport(lines);
+      }
     }
-    if (lines.length >= 3 && lines[0].replaceAll(' ', '').length == 30) {
-      return parseCpr(lines);
+    if (lines.length >= 3) {
+      final first = lines[0].replaceAll(' ', '');
+      if (first.length >= 27 && first.length <= 33) {
+        return parseCpr(lines);
+      }
     }
     return null;
   }

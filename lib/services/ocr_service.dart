@@ -26,8 +26,8 @@ class OcrService {
 
     final mrzLines = lines.where((line) {
       final cleaned = line.replaceAll(' ', '');
-      if (cleaned.length == 44) return true;
-      if (cleaned.length == 30) return true;
+      if (cleaned.length >= 41 && cleaned.length <= 47) return true;
+      if (cleaned.length >= 27 && cleaned.length <= 33) return true;
       return false;
     }).toList();
 
