@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ocr_mrz/services/ocr_service.dart';
@@ -33,7 +34,7 @@ class _ScanScreenState extends State<ScanScreen> {
         return;
       }
       setState(() => _previewPath = picked.path);
-      final result = await _processImage(File(picked.path));
+      final result = await _processImage(picked.path);
       if (!mounted) return;
       if (result != null) {
         Navigator.push(
@@ -55,11 +56,11 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  Future<ScanResult?> _processImage(File imageFile) async {
+  Future<ScanResult?> _processImage(String imagePath) async {
     final ocr = OcrService();
     final mrzParser = MrzParserService();
 
-    final rawText = await ocr.recognizeText(imageFile);
+    final rawText = await ocr.recognizeText(imagePath);
     final mrzLines = await ocr.extractMrzLines(rawText);
 
     if (mrzLines.isEmpty) return null;
@@ -72,7 +73,7 @@ class _ScanScreenState extends State<ScanScreen> {
       type: parsed['documentType'],
       data: parsed,
       scannedAt: DateTime.now(),
-      imagePath: imageFile.path,
+      imagePath: imagePath,
     );
   }
 
@@ -90,11 +91,9 @@ class _ScanScreenState extends State<ScanScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (_previewPath != null)
-                Image.file(
-                  File(_previewPath!),
-                  height: 200,
-                  fit: BoxFit.cover,
-                ),
+                kIsWeb
+                    ? Image.network(_previewPath!, height: 200, fit: BoxFit.cover)
+                    : Image.file(File(_previewPath!), height: 200, fit: BoxFit.cover),
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: _isProcessing ? null : _pickAndProcess,

@@ -17,6 +17,27 @@
   <!-- Tesseract.js for OCR -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   
+  <script>
+    const _OriginalTesseract = Tesseract;
+    window.Tesseract = {
+      recognize: async function(imagePathOrBase64) {
+        try {
+          if (typeof _OriginalTesseract !== 'undefined') {
+            const result = await _OriginalTesseract.recognize(
+              imagePathOrBase64,
+              'eng+ara',
+              { logger: m => {} }
+            );
+            return result.data.text;
+          }
+          return '';
+        } catch (e) {
+          return '';
+        }
+      }
+    };
+  </script>
+  
   <style>
     body {
       margin: 0;
@@ -30,24 +51,6 @@
   <script src="flutter_bootstrap.js" async></script>
 
   <script>
-    window.Tesseract = {
-      recognize: async function(imagePathOrBase64) {
-        try {
-          if (typeof Tesseract !== 'undefined') {
-            const result = await Tesseract.recognize(
-              imagePathOrBase64,
-              'eng+ara',
-              { logger: m => {} }
-            );
-            return result.data.text;
-          }
-          return '';
-        } catch (e) {
-          return '';
-        }
-      }
-    };
-
     window.addEventListener('load', function() {
       try {
         window.firebase.initializeApp({

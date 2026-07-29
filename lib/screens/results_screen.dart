@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ocr_mrz/models/scan_result.dart';
 import 'package:ocr_mrz/services/firebase_service.dart';
@@ -94,11 +95,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
             ),
             const SizedBox(height: 16),
             if (widget.imagePath.isNotEmpty)
-              Image.file(
-                File(widget.imagePath),
-                height: 200,
-                fit: BoxFit.cover,
-              ),
+              kIsWeb
+                  ? Image.network(
+                      widget.imagePath,
+                      height: 200,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.broken_image, size: 100),
+                    )
+                  : Image.file(
+                      File(widget.imagePath),
+                      height: 200,
+                      fit: BoxFit.cover,
+                    ),
             const SizedBox(height: 16),
             ...fields,
           ],

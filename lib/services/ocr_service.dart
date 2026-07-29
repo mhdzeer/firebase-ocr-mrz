@@ -7,9 +7,9 @@ class Tesseract {
 }
 
 class OcrService {
-  Future<String> recognizeText(dynamic imageInput) async {
+  Future<String> recognizeText(String imagePathOrBase64) async {
     try {
-      final result = await Tesseract.recognize(imageInput as String);
+      final result = await Tesseract.recognize(imagePathOrBase64);
       return result as String;
     } catch (e) {
       return '';
@@ -17,6 +17,7 @@ class OcrService {
   }
 
   Future<List<String>> extractMrzLines(String rawText) async {
+    if (rawText.isEmpty) return [];
     final lines = rawText
         .split(RegExp(r'\r?\n'))
         .map((line) => line.trim())
