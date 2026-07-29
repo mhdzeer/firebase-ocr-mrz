@@ -23,7 +23,7 @@ dependencies:
   path: ^1.9.0
 
   # MRZ parsing
-  mrz_parser: ^0.2.0
+  mrz_parser: ^2.0.1
 
   # JS interop for Tesseract.js (web OCR)
   js: ^0.6.7
