@@ -28,15 +28,39 @@
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
-  
+
   <script>
-    firebase.initializeApp({
-      apiKey: "AIzaSyAW9FAmjDvf3D5JhbOXLY1Bkax96Cbi4JY",
-      authDomain: "ocr-mrz-87733.firebaseapp.com",
-      projectId: "ocr-mrz-87733",
-      storageBucket: "ocr-mrz-87733.firebasestorage.app",
-      messagingSenderId: "452665290767",
-      appId: "1:452665290767:web:937511bc9b015bb0a2337a"
+    window.Tesseract = {
+      recognize: async function(imagePathOrBase64) {
+        try {
+          if (typeof Tesseract !== 'undefined') {
+            const result = await Tesseract.recognize(
+              imagePathOrBase64,
+              'eng+ara',
+              { logger: m => {} }
+            );
+            return result.data.text;
+          }
+          return '';
+        } catch (e) {
+          return '';
+        }
+      }
+    };
+
+    window.addEventListener('load', function() {
+      try {
+        window.firebase.initializeApp({
+          apiKey: "AIzaSyAW9FAmjDvf3D5JhbOXLY1Bkax96Cbi4JY",
+          authDomain: "ocr-mrz-87733.firebaseapp.com",
+          projectId: "ocr-mrz-87733",
+          storageBucket: "ocr-mrz-87733.firebasestorage.app",
+          messagingSenderId: "452665290767",
+          appId: "1:452665290767:web:937511bc9b015bb0a2337a"
+        });
+      } catch(e) {
+        console.error('Firebase init error:', e);
+      }
     });
   </script>
 </body>
