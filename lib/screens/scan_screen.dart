@@ -20,6 +20,10 @@ class _ScanScreenState extends State<ScanScreen> {
   bool _isProcessing = false;
   String? _errorText;
   String? _previewPath;
+  String? _rawOcrText;
+  int? _rawOcrLength;
+  List<String> _mrzLines = const [];
+  String? _parseResult;
 
   Future<void> _pickAndProcess() async {
     if (_isProcessing) return;
@@ -77,11 +81,23 @@ class _ScanScreenState extends State<ScanScreen> {
     final mrzParser = MrzParserService();
 
     final rawText = await ocr.recognizeText(imagePath);
-    final mrzLines = await ocr.extractMrzLines(rawText);
+    final trimmed = rawText.trim();
+    setState(() {
+      _rawOcrText = trimmed.isEmpty ? '(empty)' : trimmed;
+      _rawOcrLength = rawText.length;
+    });
 
-    if (mrzLines.isEmpty) return null;
+    final mrzLines = await ocr.extractMrzLines(rawText);
+    setState(() => _mrzLines = mrzLines);
+
+    if (mrzLines.isEmpty) {
+      setState(() => _parseResult = 'no mrz lines');
+      return null;
+    }
 
     final parsed = mrzParser.parse(mrzLines);
+    setState(() => _parseResult = parsed == null ? 'parse failed' : 'parsed');
+
     if (parsed == null) return null;
 
     return ScanResult(
@@ -125,6 +141,22 @@ class _ScanScreenState extends State<ScanScreen> {
                   _errorText!,
                   style: const TextStyle(color: Colors.red),
                   textAlign: TextAlign.center,
+                ),
+              const SizedBox(height: 12),
+              if (_rawOcrText != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Raw OCR (${_rawOcrLength ?? 0} chars):', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(_rawOcrText!, maxLines: 3, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 8),
+                    Text('MRZ lines: ${_mrzLines.length}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    ..._mrzLines.map((l) => Text('• $l')),
+                    const SizedBox(height: 8),
+                    Text('Parse: ${_parseResult ?? '-'}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
                 ),
             ],
           ),
