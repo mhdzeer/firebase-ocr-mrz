@@ -23,20 +23,22 @@ class DefaultFirebaseOptions {
     apiKey: 'YOUR-WEB-API-KEY',
     appId: 'YOUR-WEB-APP-ID',
     messagingSenderId: 'YOUR-SENDER-ID',
-    projectId: 'YOUR-PROJECT-ID',
+    projectId: 'OCR-MRZ',
+    authDomain: 'OCR-MRZ.firebaseapp.com',
+    storageBucket: 'OCR-MRZ.appspot.com',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'YOUR-ANDROID-API-KEY',
     appId: '1:XXXXXXXXXX:android:XXXXXXXXXXXXXXXX',
     messagingSenderId: 'XXXXXXXXXX',
-    projectId: 'YOUR-PROJECT-ID',
+    projectId: 'OCR-MRZ',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'YOUR-IOS-API-KEY',
     appId: '1:XXXXXXXXXX:ios:XXXXXXXXXXXXXXXX',
     messagingSenderId: 'XXXXXXXXXX',
-    projectId: 'YOUR-PROJECT-ID',
+    projectId: 'OCR-MRZ',
   );
 }

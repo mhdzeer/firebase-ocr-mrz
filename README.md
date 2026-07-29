@@ -1,103 +1,129 @@
-# MRZ OCR Reader (Flutter + Firebase + ML Kit)
+# MRZ OCR Reader (Flutter Web + Firebase)
 Free, on-device Passport and Bahraini CPR ID card OCR reader.
 
 ## Tech Stack (100% Free, No Credit Card)
-- **Flutter** (cross-platform mobile app)
-- **Firebase Spark Plan** (free tier: Auth + Firestore)
-- **Google ML Kit Text Recognition** (on-device, free, unlimited)
+- **Flutter Web** (runs in browser)
+- **Firebase Spark Plan** (free tier: Auth + Firestore + Hosting)
+- **Tesseract.js** (browser-based OCR, free, runs locally)
 - **mrz_parser** (open-source MRZ decoding)
 
-## Architecture
+## Architecture (Web)
 ```
-[Camera / Gallery] -> [ML Kit OCR (raw text)] -> [MRZ Filter (Regex)] -> [MRZ Parser] -> [Structured JSON]
+[Image Upload] -> [Tesseract.js OCR (raw text)] -> [MRZ Filter (Regex)] -> [MRZ Parser] -> [Structured JSON]
 ```
 
 ## Setup Steps
 
-### 1. Create a Flutter Project
-```bash
-cd C:\path\to\workspace
-flutter create ocr_mrz
-cd ocr_mrz
-```
-
-### 2. Add Firebase (Free Spark Plan)
+### 1. Create Firebase Project (Free Spark Plan)
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a project (no billing needed, select "Spark Plan")
-3. Add both Android and iOS apps in project settings:
-   - **Android**: package name `com.example.ocr_mrz`
-   - **iOS**: bundle ID `com.example.ocrM`
+2. Create project named **OCR-MRZ**
+3. Select **Spark Plan** (free, no credit card)
 
-### 3. Get Firebase Config Files
-```bash
-flutter pub global activate flutterfire_cli
-flutterfire configure
+### 2. Enable Firebase Services
+In Firebase Console for project **OCR-MRZ**:
+- **Authentication** → Sign-in method → Enable **Anonymous**
+- **Firestore Database** → Create database → Start in **Test mode**
+- **Hosting** → Get started (install Firebase CLI)
+
+### 3. Get Firebase Web Config
+1. In Firebase Console → **Project Settings** → **Add app** → **Web**
+2. Copy the `firebaseConfig` object values:
+   - `apiKey`
+   - `authDomain` (should be `OCR-MRZ.firebaseapp.com`)
+   - `projectId` (should be `OCR-MRZ`)
+   - `storageBucket`
+   - `messagingSenderId`
+   - `appId`
+
+### 4. Update Config Files
+
+#### Update `lib/firebase_options.dart`:
+Replace the `web` section with your actual values:
+```dart
+static const FirebaseOptions web = FirebaseOptions(
+  apiKey: 'YOUR-ACTUAL-API-KEY',
+  appId: 'YOUR-ACTUAL-APP-ID',
+  messagingSenderId: 'YOUR-ACTUAL-SENDER-ID',
+  projectId: 'OCR-MRZ',
+  authDomain: 'OCR-MRZ.firebaseapp.com',
+  storageBucket: 'OCR-MRZ.appspot.com',
+);
 ```
-This generates `lib/firebase_options.dart` with your project credentials.
 
-### 4. Place Native Config Files
-- Download `google-services.json` from Firebase Console and place it in `android/app/`
-- Download `GoogleService-Info.plist` from Firebase Console and place it in `ios/Runner/`
+#### Update `web/index.html`:
+Replace the Firebase config in the script with your actual values.
 
-### 5. Add Dependencies
-```bash
+### 5. Install Dependencies
+```powershell
+cd C:\antigravity\OCR-MRZ
 flutter pub get
 ```
 
-### 6. Run the App
-```bash
-flutter run
+### 6. Build & Deploy to Firebase Hosting
+```powershell
+# Install Firebase CLI if not already installed
+npm install -g firebase-tools
+
+# Login to Firebase
+firebase login
+
+# Build Flutter web app
+flutter build web
+
+# Deploy to Firebase Hosting
+firebase deploy --only hosting
 ```
 
-## Android Specific Setup
-- Add camera permission in `AndroidManifest.xml` (already included in this repo)
-- Make sure `minSdkVersion` is at least 21 (set in `android/app/build.gradle`)
+Your app will be live at: `https://OCR-MRZ.web.app` or `https://OCR-MRZ.firebaseapp.com`
 
-## iOS Specific Setup
-- Add camera usage descriptions in `Info.plist` (already included)
-- Run on a physical device (ML Kit Camera doesn't work on simulator)
+## How to Use (Web)
+1. Open the deployed URL in a browser
+2. Click **"Select Image"** to upload a photo of:
+   - **Passport MRZ**: Bottom 2 lines (44 chars each)
+   - **Bahraini CPR ID**: Bottom 3 lines (30 chars each)
+3. Tesseract.js processes the image locally in your browser
+4. Parsed data is displayed and saved to Firestore
 
-## How It Works
-1. **Scan**: User takes a photo of Passport MRZ (bottom 2 lines) or Bahraini CPR ID (bottom 3 lines)
-2. **OCR**: ML Kit extracts raw text on-device (no internet, no billing)
-3. **Filter**: Regex filters lines that are 44 chars (Passport) or 30 chars (CPR)
-4. **Parse**: MRZ parser decodes fields and validates checksums
-5. **Save**: Data is saved to Firestore under the user's anonymous UID
+## Project Structure
+```
+lib/
+  main.dart                    # App entry with Firebase init
+  firebase_options.dart        # Firebase config (update with your values)
+  models/
+    scan_result.dart           # Scan result model
+  services/
+    firebase_service.dart      # Auth + Firestore
+    ocr_service.dart           # Tesseract.js wrapper + MRZ filter
+    mrz_parser_service.dart    # Passport + CPR MRZ decoding
+  screens/
+    scan_screen.dart           # Image upload screen
+    results_screen.dart        # Parsed data + Firestore save
+web/
+  index.html                   # Firebase + Tesseract.js CDN
+  flutter_bootstrap.js         # Web bootstrap
+firebase.json                  # Firebase Hosting config
+```
 
 ## Free Tier Limits (Firebase Spark)
 - **Auth**: Unlimited anonymous sign-ins
 - **Firestore**: 50,000 reads/day, 20,000 writes/day, 1 GiB storage
-- **ML Kit**: Unlimited on-device text recognition
+- **Hosting**: 10 GB storage, 10 GB/month transfer
+- **Tesseract.js**: 100% free, browser-based, no API limits
 
 ## Cost Breakdown
 | Component | Cost |
 |-----------|------|
 | Firebase Auth | $0 |
 | Firestore (Spark) | $0 |
-| ML Kit Text Recognition | $0 |
-| Third-party ID SDKs (Microblink, etc.) | $0 |
+| Firebase Hosting (Spark) | $0 |
+| Tesseract.js OCR | $0 |
 | **Total** | **$0/month** |
 
-## Supported Document Types
-- **Passports**: ICAO 9303 standard, 2 lines × 44 chars
-- **Bahraini CPR (ID Cards)**: 3 lines × 30 chars, custom parser
-
-## Project Structure
-```
-lib/
-  main.dart                    # App entry + Firebase init
-  models/
-    scan_result.dart           # Scan data model
-  services/
-    firebase_service.dart      # Auth + Firestore
-    ocr_service.dart           # ML Kit wrapper + MRZ regex filter
-    mrz_parser_service.dart    # Passport + CPR MRZ decoding
-  screens/
-    scan_screen.dart           # Camera / Gallery capture
-    results_screen.dart        # Parsed data display + Firestore save
-```
+## Supported Documents
+- **Passports**: ICAO 9303 (2 lines × 44 chars)
+- **Bahraini CPR ID Cards**: 3 lines × 30 chars
 
 ## Troubleshooting
-- **ML Kit not detecting text**: Ensure image is well-lit and MRZ is in focus
-- **Firebase auth fails**: Check `google-services.json` / `GoogleService-Info.plist` are correct
-- **iOS simulator error**: ML Kit Camera requires a physical iOS device
+- **Tesseract OCR not working**: Ensure image has good lighting and MRZ is clear
+- **Firebase config error**: Double-check `firebase_options.dart` web values
+- **Hosting deployment fails**: Run `firebase login` and ensure you selected the right project

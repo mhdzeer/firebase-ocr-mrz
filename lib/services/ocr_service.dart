@@ -1,15 +1,19 @@
-import 'dart:io';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'dart:js' as js;
+import 'package:js/js.dart';
+
+@JS('Tesseract')
+class Tesseract {
+  external static Future<String> recognize(String imagePathOrBase64);
+}
 
 class OcrService {
-  final TextRecognizer _recognizer = TextRecognizer(
-    script: TextRecognitionScript.latin,
-  );
-
-  Future<String> recognizeText(File imageFile) async {
-    final inputImage = InputImage.fromFile(imageFile);
-    final RecognizedText recognizedText = await _recognizer.processImage(inputImage);
-    return recognizedText.text;
+  Future<String> recognizeText(dynamic imageInput) async {
+    try {
+      final result = await Tesseract.recognize(imageInput as String);
+      return result as String;
+    } catch (e) {
+      return '';
+    }
   }
 
   Future<List<String>> extractMrzLines(String rawText) async {
@@ -27,9 +31,5 @@ class OcrService {
     }).toList();
 
     return mrzLines;
-  }
-
-  void dispose() {
-    _recognizer.close();
   }
 }
