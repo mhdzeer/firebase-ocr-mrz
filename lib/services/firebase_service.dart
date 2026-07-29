@@ -11,7 +11,7 @@ class FirebaseService {
 
   Future<String?> get currentUid async {
     try {
-      final user = await _promise(_auth.currentUser);
+      final user = await _jsPromise(_auth.currentUser);
       return user != null ? user['uid'] as String? : null;
     } catch (e) {
       return null;
@@ -20,7 +20,7 @@ class FirebaseService {
 
   Future<void> initialize() async {
     try {
-      await _promise(_auth.signInAnonymously());
+      await _jsPromise(_auth.signInAnonymously());
     } catch (e) {
       // may already be signed in
     }

@@ -25,7 +25,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
   Future<void> _saveToFirestore() async {
     final firebase = FirebaseService();
-    if (firebase.currentUser == null) {
+    if (firebase.currentUid == null) {
       try {
         await firebase.initialize();
       } catch (e) {
