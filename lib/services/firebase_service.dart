@@ -1,38 +1,77 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:js' as js;
+import 'package:js/js.dart';
 import 'package:ocr_mrz/models/scan_result.dart';
 
-class FirebaseService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+@JS('window.firebase')
+external dynamic getFirebase();
 
-  User? get currentUser => _auth.currentUser;
+class FirebaseService {
+  dynamic get _auth => getFirebase()['auth']();
+  dynamic get _firestore => getFirebase()['firestore']();
+
+  Future<String?> get currentUid async {
+    try {
+      final user = await _promise(_auth.currentUser);
+      return user != null ? user['uid'] as String? : null;
+    } catch (e) {
+      return null;
+    }
+  }
 
   Future<void> initialize() async {
-    await _auth.signInAnonymously();
+    try {
+      await _promise(_auth.signInAnonymously());
+    } catch (e) {
+      // may already be signed in
+    }
   }
 
   Future<void> saveScanResult(ScanResult result) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('scans')
-        .doc(result.id)
-        .set(result.toMap());
+    try {
+      final uid = await currentUid;
+      if (uid == null) return;
+
+      final docRef = _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('scans')
+          .doc(result.id);
+
+      await _jsPromise(docRef.set(result.toMap()));
+    } catch (e) {
+      // swallow to avoid blocking UI
+    }
   }
 
   Future<List<ScanResult>> loadScanHistory() async {
-    final user = _auth.currentUser;
-    if (user == null) return [];
-    final snapshot = await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('scans')
-        .orderBy('scannedAt', descending: true)
-        .get();
+    try {
+      final uid = await currentUid;
+      if (uid == null) return [];
 
-    return snapshot.docs.map((doc) => ScanResult.fromMap(doc.data())).toList();
+      final snapshot = await _jsPromise(_firestore
+          .collection('users')
+          .doc(uid)
+          .collection('scans')
+          .orderBy('scannedAt', descending: true)
+          .get());
+
+      final docs = snapshot['docs'] as List;
+      return docs.map((doc) {
+        final data = doc['data']();
+        return ScanResult.fromMap(Map<String, dynamic>.from(data));
+      }).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<T> _jsPromise<T>(dynamic promise) {
+    final completer = js.context.callMethod('Promise').callMethod('resolve', [null]);
+    promise.then(js.allowInterop((dynamic result) {
+      completer.callMethod('resolve', [result]);
+    }), js.allowInterop((dynamic error) {
+      completer.callMethod('reject', [error]);
+    }));
+    return completer.callMethod('toDart');
   }
 }
