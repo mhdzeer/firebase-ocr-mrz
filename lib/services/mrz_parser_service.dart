@@ -24,6 +24,15 @@ class MrzParserService {
       final expiryDateRaw = line2.substring(21, 27);
       final personalNumber = line2.substring(28, 42).replaceAll(RegExp(r'[^A-Z0-9]'), '').trim();
 
+      if (nationality.isEmpty && birthDateRaw.length == 6) {
+        final alt = line2.substring(11, 17);
+        if (_looksLikeDate(alt)) {
+          final altNat = line2.substring(10, 13).replaceAll(RegExp(r'[^A-Z]'), '');
+          if (altNat.isNotEmpty) {
+          }
+        }
+      }
+
       return {
         'documentType': 'passport',
         'countryCode': countryCode,
@@ -39,6 +48,13 @@ class MrzParserService {
     } catch (e) {
       return null;
     }
+  }
+
+  bool _looksLikeDate(String s) {
+    if (s.length != 6) return false;
+    final month = int.tryParse(s.substring(2, 4)) ?? 0;
+    final day = int.tryParse(s.substring(4, 6)) ?? 0;
+    return month >= 1 && month <= 12 && day >= 1 && day <= 31;
   }
 
   Map<String, dynamic>? parseCpr(List<String> lines) {

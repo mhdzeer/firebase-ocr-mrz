@@ -22,13 +22,28 @@ class OcrService {
         .where((line) => line.isNotEmpty)
         .toList();
 
-    final mrzLines = lines.where((line) {
-      final cleaned = line.replaceAll(' ', '');
-      if (cleaned.length >= 41 && cleaned.length <= 47) return true;
-      if (cleaned.length >= 27 && cleaned.length <= 33) return true;
-      return false;
-    }).toList();
+    final cleanedLines = lines.map((line) => line.replaceAll(' ', '')).toList();
 
-    return mrzLines;
+    final candidateLines = <String>[];
+    for (final line in cleanedLines) {
+      final alnumRatio = _alnumRatio(line);
+      if (alnumRatio < 0.7) continue;
+      final upper = line.toUpperCase();
+      if (upper.startsWith('P<') && line.length >= 41 && line.length <= 47) {
+        candidateLines.insert(0, line);
+      } else if (line.length >= 41 && line.length <= 47) {
+        candidateLines.add(line);
+      } else if (line.length >= 27 && line.length <= 33) {
+        candidateLines.add(line);
+      }
+    }
+
+    return candidateLines;
+  }
+
+  double _alnumRatio(String s) {
+    if (s.isEmpty) return 0;
+    final alnum = s.runes.where((r) => (r >= 48 && r <= 57) || (r >= 65 && r <= 90)).length;
+    return alnum / s.length;
   }
 }
