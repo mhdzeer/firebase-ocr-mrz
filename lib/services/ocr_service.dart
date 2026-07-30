@@ -38,7 +38,11 @@ class OcrService {
       }
     }
 
-    return candidateLines;
+    final deduped = <String>[];
+    for (final line in candidateLines) {
+      if (!deduped.contains(line)) deduped.add(line);
+    }
+    return deduped;
   }
 
   double _alnumRatio(String s) {

@@ -119,7 +119,7 @@ class _ScanScreenState extends State<ScanScreen> {
     final mrzName = '${result['firstName'] ?? ''} ${result['lastName'] ?? ''}'.trim();
 
     if (visualName != null && visualName.isNotEmpty) {
-      if (mrzName.isEmpty || mrzName.length < 5 || (result['lastName']?.toString().length ?? 0) < 3) {
+      if (mrzName.isEmpty || mrzName.length < 5 || (result['lastName']?.toString().length ?? 99) < 5 || (result['firstName']?.toString().length ?? 99) < 3) {
         final parts = visualName.split(' ');
         if (parts.length >= 2) {
           result['lastName'] = parts.first;
