@@ -11,31 +11,37 @@ class MrzParserService {
 
       final docType = line1.substring(0, 2);
       final countryCode = line1.substring(2, 5);
-      final lastNameRaw = line1.substring(5, 44).replaceAll('<', ' ').trim();
 
-      final nameParts = lastNameRaw.split(' ').where((s) => s.isNotEmpty).toList();
-      final parsedLastName = nameParts.isNotEmpty ? nameParts.removeAt(0) : '';
-      final parsedFirstName = nameParts.join(' ');
+      final lastNameRaw = line1.substring(5, 44).replaceAll('<', ' ').trim();
+      final nameTokens = lastNameRaw.split(' ').where((s) => s.isNotEmpty).toList();
+
+      Map<String, String> names;
+      if (nameTokens.length >= 2) {
+        names = {'last': nameTokens[0], 'first': nameTokens.sublist(1).join(' ')};
+      } else if (nameTokens.length == 1) {
+        names = {'last': nameTokens[0], 'first': ''};
+      } else {
+        names = {'last': '', 'first': ''};
+      }
 
       final docNumber = line2.substring(0, 9).replaceAll('<', '').trim();
-      final nationality = line2.substring(10, 13);
-      final birthDateRaw = line2.substring(13, 19);
-      final sex = line2.substring(20, 21);
-      final expiryDateRaw = line2.substring(21, 27);
-
-      final optionalData = line2.substring(28).replaceAll('<', '').trim();
+      final nationality = line2.substring(11, 14);
+      final birthDateRaw = line2.substring(14, 20);
+      final sex = line2.substring(21, 22);
+      final expiryDateRaw = line2.substring(22, 28);
+      final personalNumber = line2.substring(28, 42).replaceAll(RegExp(r'[^A-Z0-9]'), '').trim();
 
       return {
         'documentType': 'passport',
         'countryCode': countryCode,
-        'lastName': parsedLastName,
-        'firstName': parsedFirstName,
+        'lastName': names['last'] ?? '',
+        'firstName': names['first'] ?? '',
         'documentNumber': docNumber,
         'nationality': nationality,
         'birthDate': _formatDate(birthDateRaw),
         'sex': sex == 'M' ? 'male' : sex == 'F' ? 'female' : 'unknown',
         'expirationDate': _formatDate(expiryDateRaw),
-        'optionalData': optionalData,
+        'personalNumber': personalNumber,
       };
     } catch (e) {
       return null;
@@ -53,10 +59,10 @@ class MrzParserService {
       final third = _normalizeLine(thirdRaw, 30);
 
       final docNumber = first.substring(0, 9).replaceAll('<', '').trim();
-      final nationality = first.substring(10, 13);
-      final birthDate = first.substring(13, 19);
-      final sex = first.substring(20, 21);
-      final expiryDate = first.substring(21, 27);
+      final nationality = first.substring(11, 14);
+      final birthDate = first.substring(14, 20);
+      final sex = first.substring(21, 22);
+      final expiryDate = first.substring(22, 28);
 
       final lastName = second.substring(0, 29).replaceAll('<', ' ').trim();
       final firstName = third.substring(0, 29).replaceAll('<', ' ').trim();
