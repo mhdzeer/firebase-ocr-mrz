@@ -20,18 +20,38 @@
   <script>
     window.mrzTesseractRecognize = async function(imagePathOrBase64) {
       try {
+        console.log('[MRZ] Tesseract loaded:', typeof Tesseract !== 'undefined');
+        console.log('[MRZ] input prefix:', (imagePathOrBase64 || '').slice(0, 40));
+
         if (typeof Tesseract === 'undefined') {
-          console.error('Tesseract not loaded');
+          console.error('[MRZ] Tesseract not loaded');
           return '';
         }
-        const worker = await Tesseract.createWorker('eng+ara');
-        const result = await worker.recognize(imagePathOrBase64);
+
+        let worker;
+        try {
+          worker = await Tesseract.createWorker('eng+ara');
+          console.log('[MRZ] worker created');
+        } catch (e) {
+          console.error('[MRZ] createWorker failed:', e);
+          return '';
+        }
+
+        let result;
+        try {
+          result = await worker.recognize(imagePathOrBase64);
+          console.log('[MRZ] recognize completed');
+        } catch (e) {
+          console.error('[MRZ] recognize failed:', e);
+        }
+
         await worker.terminate();
+
         const text = (result && result.data && result.data.text) ? result.data.text : '';
-        console.log('Tesseract result preview:', text.slice(0, 500));
+        console.log('[MRZ] result preview:', text.slice(0, 500));
         return text;
       } catch (e) {
-        console.error('Tesseract recognize error:', e);
+        console.error('[MRZ] unexpected error:', e);
         return '';
       }
     };
