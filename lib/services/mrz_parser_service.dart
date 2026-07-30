@@ -122,19 +122,7 @@ class MrzParserService {
     if (raw.isEmpty) return '';
     String cleaned = raw.replaceAll('<', ' ').trim();
     cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ');
-    final parts = cleaned.split(' ').where((s) => s.isNotEmpty).toList();
-    return parts.map((s) {
-      if (s.length <= 3) return s;
-      final seen = <String>{};
-      final buffer = StringBuffer();
-      for (final char in s.split('')) {
-        if (!seen.contains(char) || buffer.length == 0) {
-          seen.add(char);
-          buffer.write(char);
-        }
-      }
-      return buffer.toString();
-    }).join(' ');
+    return cleaned;
   }
 
   String _formatDate(String yymmdd) {
@@ -254,6 +242,16 @@ class MrzParserService {
     final nameLabelMatch = RegExp(r'(?:NAME\s+OF\s+BEARER|الاسم)\s*[:\-]?\s*([A-Z\s]{3,})').firstMatch(upperText);
     if (nameLabelMatch != null && out['englishName'] == null) {
       out['englishName'] = nameLabelMatch.group(1)?.trim();
+    }
+
+    final upperWords = upperText.split(RegExp(r'\s+'));
+    if (out['englishName'] == null && upperWords.length >= 2) {
+      final candidates = upperWords.where((w) => w.length >= 2 && RegExp(r'^[A-Z]+$').hasMatch(w)).toList();
+      if (candidates.length >= 3) {
+        final surnameCandidate = candidates.firstWhere((w) => w.length >= 3, orElse: () => candidates.first);
+        final givenCandidates = candidates.where((w) => w != surnameCandidate).toList();
+        out['englishName'] = '$surnameCandidate ${givenCandidates.join(' ')}'.trim();
+      }
     }
 
     return out;

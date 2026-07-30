@@ -96,16 +96,45 @@ class _ScanScreenState extends State<ScanScreen> {
     if (parsed == null) return null;
 
     final validation = mrzParser.compareWithVisualText(parsed, rawText);
+    final visualExtraction = mrzParser.extractFromVisualText(rawText);
+
+    final correctedData = _applyVisualFallback(parsed, visualExtraction);
 
     return ScanResult(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       type: parsed['documentType'],
-      data: parsed,
+      data: correctedData,
       scannedAt: DateTime.now(),
       imagePath: imagePath,
       rawOcrText: _rawOcrText,
       validation: validation,
+      visualExtraction: visualExtraction,
     );
+  }
+
+  Map<String, dynamic> _applyVisualFallback(Map<String, dynamic> mrzData, Map<String, dynamic> visualData) {
+    final result = Map<String, dynamic>.from(mrzData);
+
+    final visualName = (visualData['englishName'] ?? visualData['arabicName'])?.toString().trim();
+    final mrzName = '${result['firstName'] ?? ''} ${result['lastName'] ?? ''}'.trim();
+
+    if (visualName != null && visualName.isNotEmpty) {
+      if (mrzName.isEmpty || mrzName.length < 5 || (result['lastName']?.toString().length ?? 0) < 3) {
+        final parts = visualName.split(' ');
+        if (parts.length >= 2) {
+          result['lastName'] = parts.first;
+          result['firstName'] = parts.sublist(1).join(' ');
+        } else if (parts.length == 1) {
+          result['firstName'] = parts.first;
+        }
+      }
+    }
+
+    if ((result['nationality']?.toString().trim().isEmpty ?? true) && visualData['nationality'] != null) {
+      result['nationality'] = visualData['nationality'];
+    }
+
+    return result;
   }
 
   @override
