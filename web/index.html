@@ -15,7 +15,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   
   <!-- Tesseract.js for OCR -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <script>
     window.mrzTesseractRecognize = async function(imagePathOrBase64) {
@@ -28,24 +28,14 @@
           return '';
         }
 
-        let worker;
-        try {
-          worker = await Tesseract.createWorker('eng+ara');
-          console.log('[MRZ] worker created');
-        } catch (e) {
-          console.error('[MRZ] createWorker failed:', e);
-          return '';
-        }
-
         let result;
         try {
-          result = await worker.recognize(imagePathOrBase64);
+          result = await Tesseract.recognize(imagePathOrBase64, 'eng');
           console.log('[MRZ] recognize completed');
         } catch (e) {
           console.error('[MRZ] recognize failed:', e);
+          return '';
         }
-
-        await worker.terminate();
 
         const text = (result && result.data && result.data.text) ? result.data.text : '';
         console.log('[MRZ] result preview:', text.slice(0, 500));
