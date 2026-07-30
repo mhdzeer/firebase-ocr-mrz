@@ -12,30 +12,23 @@ class MrzParserService {
       final docType = line1.substring(0, 2);
       final countryCode = line1.substring(2, 5);
 
-      final lastNameRaw = line1.substring(5, 44).replaceAll('<', ' ').trim();
-      final nameTokens = lastNameRaw.split(' ').where((s) => s.isNotEmpty).toList();
-
-      Map<String, String> names;
-      if (nameTokens.length >= 2) {
-        names = {'last': nameTokens[0], 'first': nameTokens.sublist(1).join(' ')};
-      } else if (nameTokens.length == 1) {
-        names = {'last': nameTokens[0], 'first': ''};
-      } else {
-        names = {'last': '', 'first': ''};
-      }
+      final nameRaw = line1.substring(5, 44);
+      final nameParts = nameRaw.split('<<').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+      final parsedLastName = nameParts.isNotEmpty ? nameParts[0] : '';
+      final parsedFirstName = nameParts.length >= 2 ? nameParts.sublist(1).join(' ') : '';
 
       final docNumber = line2.substring(0, 9).replaceAll('<', '').trim();
-      final nationality = line2.substring(11, 14);
-      final birthDateRaw = line2.substring(14, 20);
-      final sex = line2.substring(21, 22);
-      final expiryDateRaw = line2.substring(22, 28);
+      final nationality = line2.substring(10, 13).replaceAll(RegExp(r'[^A-Z]'), '');
+      final birthDateRaw = line2.substring(13, 19);
+      final sex = line2.substring(20, 21);
+      final expiryDateRaw = line2.substring(21, 27);
       final personalNumber = line2.substring(28, 42).replaceAll(RegExp(r'[^A-Z0-9]'), '').trim();
 
       return {
         'documentType': 'passport',
         'countryCode': countryCode,
-        'lastName': names['last'] ?? '',
-        'firstName': names['first'] ?? '',
+        'lastName': parsedLastName,
+        'firstName': parsedFirstName,
         'documentNumber': docNumber,
         'nationality': nationality,
         'birthDate': _formatDate(birthDateRaw),
@@ -59,13 +52,16 @@ class MrzParserService {
       final third = _normalizeLine(thirdRaw, 30);
 
       final docNumber = first.substring(0, 9).replaceAll('<', '').trim();
-      final nationality = first.substring(11, 14);
-      final birthDate = first.substring(14, 20);
-      final sex = first.substring(21, 22);
-      final expiryDate = first.substring(22, 28);
+      final nationality = first.substring(10, 13).replaceAll(RegExp(r'[^A-Z]'), '');
+      final birthDate = first.substring(13, 19);
+      final sex = first.substring(20, 21);
+      final expiryDate = first.substring(21, 27);
 
-      final lastName = second.substring(0, 29).replaceAll('<', ' ').trim();
-      final firstName = third.substring(0, 29).replaceAll('<', ' ').trim();
+      final lastNameRaw = second.substring(0, 29);
+      final lastName = lastNameRaw.split('<<').map((s) => s.trim()).where((s) => s.isNotEmpty).join(' ');
+      
+      final firstNameRaw = third.substring(0, 29);
+      final firstName = firstNameRaw.split('<<').map((s) => s.trim()).where((s) => s.isNotEmpty).join(' ');
 
       return {
         'documentType': 'cpr',
@@ -95,6 +91,7 @@ class MrzParserService {
     final year = int.tryParse(yymmdd.substring(0, 2)) ?? 0;
     final month = int.tryParse(yymmdd.substring(2, 4)) ?? 0;
     final day = int.tryParse(yymmdd.substring(4, 6)) ?? 0;
+    if (month < 1 || month > 12 || day < 1 || day > 31) return yymmdd;
     final fullYear = year > 50 ? 1900 + year : 2000 + year;
     return '${fullYear.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
   }
