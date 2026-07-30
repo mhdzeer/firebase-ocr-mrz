@@ -16,25 +16,23 @@
   
   <!-- Tesseract.js for OCR -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-  
+
   <script>
-    const _OriginalTesseract = Tesseract;
-    window.Tesseract = {
-      recognize: async function(imagePathOrBase64) {
-        try {
-          if (typeof _OriginalTesseract !== 'undefined') {
-            const result = await _OriginalTesseract.recognize(
-              imagePathOrBase64,
-              'eng+ara',
-              { logger: m => {} }
-            );
-            return result.data.text;
-          }
-          return '';
-        } catch (e) {
-          console.error('Tesseract recognize error:', e);
+    window.mrzTesseractRecognize = async function(imagePathOrBase64) {
+      try {
+        if (typeof Tesseract === 'undefined') {
+          console.error('Tesseract not loaded');
           return '';
         }
+        const worker = await Tesseract.createWorker('eng+ara');
+        const result = await worker.recognize(imagePathOrBase64);
+        await worker.terminate();
+        const text = (result && result.data && result.data.text) ? result.data.text : '';
+        console.log('Tesseract result preview:', text.slice(0, 500));
+        return text;
+      } catch (e) {
+        console.error('Tesseract recognize error:', e);
+        return '';
       }
     };
   </script>
