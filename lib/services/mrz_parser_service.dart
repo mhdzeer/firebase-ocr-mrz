@@ -1,6 +1,38 @@
 import 'dart:convert';
+import 'dart:math';
 
 class MrzParserService {
+  static const Map<String, String> _nationalityMap = {
+    'BAHRAINI': 'BHR',
+    'SAUDI': 'SAU',
+    'EMIRATI': 'ARE',
+    'KUWAITI': 'KWT',
+    'OMANI': 'OMN',
+    'QATARI': 'QAT',
+    'EGYPTIAN': 'EGY',
+    'LEBANESE': 'LBN',
+    'SYRIAN': 'SYR',
+    'IRAQI': 'IRQ',
+    'PALESTINIAN': 'PSE',
+    'YEMENI': 'YEM',
+    'SUDANESE': 'SDN',
+    'LIBYAN': 'LBY',
+    'BRITISH': 'GBR',
+    'FRENCH': 'FRA',
+    'GERMAN': 'DEU',
+    'ITALIAN': 'ITA',
+    'SPANISH': 'ESP',
+    'DUTCH': 'NLD',
+    'RUSSIAN': 'RUS',
+    'INDIAN': 'IND',
+    'PAKISTANI': 'PAK',
+    'BANGLADESHI': 'BGD',
+    'IRANIAN': 'IRN',
+    'TURKISH': 'TUR',
+    'MOROCCAN': 'MAR',
+    'TUNISIAN': 'TUN',
+  };
+
   Map<String, dynamic>? parsePassport(List<String> lines) {
     try {
       final line1Raw = lines[0].replaceAll(' ', '');
@@ -24,15 +56,6 @@ class MrzParserService {
       final expiryDateRaw = line2.substring(21, 27);
       final personalNumber = line2.substring(28, 42).replaceAll(RegExp(r'[^A-Z0-9]'), '').trim();
 
-      if (nationality.isEmpty && birthDateRaw.length == 6) {
-        final alt = line2.substring(11, 17);
-        if (_looksLikeDate(alt)) {
-          final altNat = line2.substring(10, 13).replaceAll(RegExp(r'[^A-Z]'), '');
-          if (altNat.isNotEmpty) {
-          }
-        }
-      }
-
       return {
         'documentType': 'passport',
         'countryCode': countryCode,
@@ -48,13 +71,6 @@ class MrzParserService {
     } catch (e) {
       return null;
     }
-  }
-
-  bool _looksLikeDate(String s) {
-    if (s.length != 6) return false;
-    final month = int.tryParse(s.substring(2, 4)) ?? 0;
-    final day = int.tryParse(s.substring(4, 6)) ?? 0;
-    return month >= 1 && month <= 12 && day >= 1 && day <= 31;
   }
 
   Map<String, dynamic>? parseCpr(List<String> lines) {
@@ -187,5 +203,73 @@ class MrzParserService {
     };
 
     return result;
+  }
+
+  Map<String, dynamic> extractFromVisualText(String fullOcrText) {
+    final upperText = fullOcrText.toUpperCase();
+    final out = <String, dynamic>{
+      'nationality': null,
+      'englishName': null,
+      'arabicName': null,
+      'cpr': null,
+      'cprVerified': false,
+    };
+
+    final cprMatch = RegExp(r'\b(\d{9})\b').firstMatch(upperText);
+    if (cprMatch != null) {
+      out['cpr'] = cprMatch.group(1);
+      out['cprVerified'] = _validateBahrainCpr(cprMatch.group(1)!);
+    }
+
+    if (_nationalityMap.containsValue(out['nationality']) == false) {
+      for (final entry in _nationalityMap.entries) {
+        if (upperText.contains(entry.key)) {
+          out['nationality'] = entry.value;
+          break;
+        }
+      }
+    }
+
+    final mrzNameMatch = RegExp(r'([A-Z]{2,}(?:\s+[A-Z]{2,})*)\s*<<\s*([A-Z]{2,}(?:\s+[A-Z]{2,})*)').firstMatch(upperText);
+    if (mrzNameMatch != null) {
+      out['englishName'] = '${mrzNameMatch.group(2)} ${mrzNameMatch.group(1)}';
+    }
+
+    final arabicNameMatch = RegExp(r'[\u0600-\u06FF]{3,}(?:\s+[\u0600-\u06FF]{3,}){1,}').firstMatch(fullOcrText);
+    if (arabicNameMatch != null) {
+      out['arabicName'] = arabicNameMatch.group(0)?.trim();
+    }
+
+    final natLabels = RegExp(r'(?:NATIONALITY|الجنسية)\s*[:\-]?\s*([A-Z]{3})').firstMatch(upperText);
+    if (natLabels != null) {
+      final code = natLabels.group(1);
+      if (code != null && _isValidIso3(code)) out['nationality'] = code;
+    }
+
+    final dobLabelMatch = RegExp(r'(?:DATE\s+OF\s+BIRTH|DOB|تاريخ\s+الميلاد)\s*[:\-]?\s*(\d{2}[./\-]\d{2}[./\-]\d{4})').firstMatch(upperText);
+    if (dobLabelMatch != null) {
+      out['dob'] = dobLabelMatch.group(1);
+    }
+
+    final nameLabelMatch = RegExp(r'(?:NAME\s+OF\s+BEARER|الاسم)\s*[:\-]?\s*([A-Z\s]{3,})').firstMatch(upperText);
+    if (nameLabelMatch != null && out['englishName'] == null) {
+      out['englishName'] = nameLabelMatch.group(1)?.trim();
+    }
+
+    return out;
+  }
+
+  bool _validateBahrainCpr(String cprStr) {
+    if (cprStr.length != 9) return false;
+    final digits = cprStr.split('').map(int.parse).toList();
+    final weights = [1, 2, 3, 4, 5, 6, 7, 8];
+    final totalSum = List.generate(8, (i) => digits[i] * weights[i]).fold(0, (a, b) => a + b);
+    var checkDigit = totalSum % 11;
+    if (checkDigit == 10) checkDigit = 0;
+    return checkDigit == digits[8];
+  }
+
+  bool _isValidIso3(String code) {
+    return RegExp(r'^[A-Z]{3}$').hasMatch(code);
   }
 }

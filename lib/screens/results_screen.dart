@@ -196,6 +196,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ],
                 ),
               ),
+            const SizedBox(height: 16),
+            if (widget.scanResult.visualExtraction != null)
+              _buildVisualExtractionSection(),
           ],
         ),
       ),
@@ -205,5 +208,41 @@ class _ResultsScreenState extends State<ResultsScreen> {
   String _capitalize(String s) {
     if (s.isEmpty) return s;
     return s[0].toUpperCase() + s.substring(1);
+  }
+
+  Widget _buildVisualExtractionSection() {
+    final data = widget.scanResult.visualExtraction;
+    if (data == null || data.isEmpty) return const SizedBox.shrink();
+
+    final items = <Widget>[];
+    data.forEach((key, value) {
+      if (value == null) return;
+      final display = value.toString();
+      if (display.isEmpty) return;
+      items.add(
+        ListTile(
+          title: Text('Visual: ${_capitalize(key)}'),
+          subtitle: Text(display),
+          leading: const Icon(Icons.visibility, color: Colors.blue),
+        ),
+      );
+    });
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.purple.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.purple.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Visual Extraction:', style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          ...items,
+        ],
+      ),
+    );
   }
 }

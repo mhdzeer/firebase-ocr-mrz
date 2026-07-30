@@ -6,6 +6,7 @@ class ScanResult {
   final String? imagePath;
   final String? rawOcrText;
   final Map<String, dynamic>? validation;
+  final Map<String, dynamic>? visualExtraction;
 
   ScanResult({
     required this.id,
@@ -15,6 +16,7 @@ class ScanResult {
     this.imagePath,
     this.rawOcrText,
     this.validation,
+    this.visualExtraction,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +28,7 @@ class ScanResult {
       'imagePath': imagePath,
       'rawOcrText': rawOcrText,
       'validation': validation,
+      'visualExtraction': visualExtraction,
     };
   }
 
@@ -38,6 +41,7 @@ class ScanResult {
       imagePath: map['imagePath'],
       rawOcrText: map['rawOcrText'],
       validation: map['validation'] != null ? Map<String, dynamic>.from(map['validation']) : null,
+      visualExtraction: map['visualExtraction'] != null ? Map<String, dynamic>.from(map['visualExtraction']) : null,
     );
   }
 }
