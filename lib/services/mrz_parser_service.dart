@@ -14,8 +14,8 @@ class MrzParserService {
 
       final nameRaw = line1.substring(5, 44);
       final nameParts = nameRaw.split('<<').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-      final parsedLastName = nameParts.isNotEmpty ? nameParts[0] : '';
-      final parsedFirstName = nameParts.length >= 2 ? nameParts.sublist(1).join(' ') : '';
+      final parsedLastName = nameParts.isNotEmpty ? _cleanMrzName(nameParts[0]) : '';
+      final parsedFirstName = nameParts.length >= 2 ? _cleanMrzName(nameParts.sublist(1).join(' ')) : '';
 
       final docNumber = line2.substring(0, 9).replaceAll('<', '').trim();
       final nationality = line2.substring(10, 13).replaceAll(RegExp(r'[^A-Z]'), '');
@@ -86,6 +86,25 @@ class MrzParserService {
     return cleaned.padRight(expectedLength, '<');
   }
 
+  String _cleanMrzName(String raw) {
+    if (raw.isEmpty) return '';
+    String cleaned = raw.replaceAll('<', ' ').trim();
+    cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ');
+    final parts = cleaned.split(' ').where((s) => s.isNotEmpty).toList();
+    return parts.map((s) {
+      if (s.length <= 3) return s;
+      final seen = <String>{};
+      final buffer = StringBuffer();
+      for (final char in s.split('')) {
+        if (!seen.contains(char) || buffer.length == 0) {
+          seen.add(char);
+          buffer.write(char);
+        }
+      }
+      return buffer.toString();
+    }).join(' ');
+  }
+
   String _formatDate(String yymmdd) {
     if (yymmdd.length != 6) return yymmdd;
     final year = int.tryParse(yymmdd.substring(0, 2)) ?? 0;
@@ -110,5 +129,47 @@ class MrzParserService {
       }
     }
     return null;
+  }
+
+  Map<String, dynamic> compareWithVisualText(Map<String, dynamic> mrzData, String fullOcrText) {
+    final upperText = fullOcrText.toUpperCase();
+    final result = <String, dynamic>{};
+
+    final fieldsToCheck = <String>[];
+    if (mrzData['documentType'] == 'passport') {
+      fieldsToCheck.addAll([
+        'documentNumber', 'nationality', 'birthDate', 'sex', 'expirationDate', 'personalNumber',
+        'lastName', 'firstName'
+      ]);
+    } else {
+      fieldsToCheck.addAll([
+        'documentNumber', 'nationality', 'birthDate', 'sex', 'expirationDate',
+        'lastName', 'firstName'
+      ]);
+    }
+
+    for (final field in fieldsToCheck) {
+      final value = (mrzData[field] ?? '').toString().trim();
+      if (value.isEmpty) {
+        result[field] = {'found': false, 'confidence': 0.0};
+        continue;
+      }
+      final upperValue = value.toUpperCase();
+      final found = upperText.contains(upperValue);
+      result[field] = {
+        'found': found,
+        'confidence': found ? 1.0 : 0.0,
+      };
+    }
+
+    final matchCount = result.values.where((v) => (v['found'] as bool)).length;
+    final totalCount = result.length;
+    result['overall'] = {
+      'matchedFields': matchCount,
+      'totalFields': totalCount,
+      'confidence': totalCount > 0 ? matchCount / totalCount : 0.0,
+    };
+
+    return result;
   }
 }

@@ -1,9 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
+import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:ocr_mrz/services/ocr_service.dart';
 import 'package:ocr_mrz/services/mrz_parser_service.dart';
 import 'package:ocr_mrz/models/scan_result.dart';
@@ -19,7 +17,7 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   bool _isProcessing = false;
   String? _errorText;
-  String? _previewPath;
+  String? _previewBase64;
   String? _rawOcrText;
   int? _rawOcrLength;
   List<String> _mrzLines = const [];
@@ -33,19 +31,24 @@ class _ScanScreenState extends State<ScanScreen> {
     });
 
     try {
-      final picker = ImagePicker();
-      final picked = await picker.pickImage(source: ImageSource.gallery);
-      if (picked == null) {
+      final input = html.FileUploadInputElement()..accept = 'image/*';
+      input.click();
+
+      await input.onChange.first;
+      final file = input.files?.first;
+      if (file == null) {
         setState(() => _isProcessing = false);
         return;
       }
 
-      final bytes = await picked.readAsBytes();
-      final base64 = base64Encode(bytes);
-      final mimeType = _mimeType(picked.name);
-      final dataUrl = 'data:$mimeType;base64,$base64';
+      final reader = html.FileReader();
+      reader.readAsDataUrl(file);
+      await reader.onLoad.first;
 
-      setState(() => _previewPath = dataUrl);
+      final dataUrl = reader.result as String;
+      final base64 = dataUrl.split(',').last;
+
+      setState(() => _previewBase64 = base64);
       final result = await _processImage(dataUrl);
       if (!mounted) return;
       if (result != null) {
@@ -66,14 +69,6 @@ class _ScanScreenState extends State<ScanScreen> {
     } finally {
       setState(() => _isProcessing = false);
     }
-  }
-
-  String _mimeType(String fileName) {
-    final ext = fileName.split('.').last.toLowerCase();
-    if (ext == 'png') return 'image/png';
-    if (ext == 'jpg' || ext == 'jpeg') return 'image/jpeg';
-    if (ext == 'gif') return 'image/gif';
-    return 'image/jpeg';
   }
 
   Future<ScanResult?> _processImage(String imagePath) async {
@@ -100,12 +95,16 @@ class _ScanScreenState extends State<ScanScreen> {
 
     if (parsed == null) return null;
 
+    final validation = mrzParser.compareWithVisualText(parsed, rawText);
+
     return ScanResult(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       type: parsed['documentType'],
       data: parsed,
       scannedAt: DateTime.now(),
       imagePath: imagePath,
+      rawOcrText: _rawOcrText,
+      validation: validation,
     );
   }
 
@@ -122,10 +121,12 @@ class _ScanScreenState extends State<ScanScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (_previewPath != null)
-                kIsWeb
-                    ? Image.network(_previewPath!, height: 200, fit: BoxFit.cover)
-                    : Image.file(File(_previewPath!), height: 200, fit: BoxFit.cover),
+              if (_previewBase64 != null)
+                Image.memory(
+                  base64Decode(_previewBase64!),
+                  height: 200,
+                  fit: BoxFit.cover,
+                ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: _isProcessing ? null : _pickAndProcess,
