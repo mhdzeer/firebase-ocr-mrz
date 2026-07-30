@@ -24,25 +24,39 @@ class OcrService {
 
     final cleanedLines = lines.map((line) => line.replaceAll(' ', '')).toList();
 
-    final candidateLines = <String>[];
+    final passportCandidates = <String>[];
+    final idCandidates = <String>[];
+    final otherCandidates = <String>[];
+
     for (final line in cleanedLines) {
       final alnumRatio = _alnumRatio(line);
       if (alnumRatio < 0.7) continue;
+
       final upper = line.toUpperCase();
+
       if (upper.startsWith('P<') && line.length >= 41 && line.length <= 47) {
-        candidateLines.insert(0, line);
+        passportCandidates.add(line);
+      } else if ((upper.startsWith('ID') || upper.startsWith('I<')) && line.length >= 27 && line.length <= 33) {
+        idCandidates.add(line);
       } else if (line.length >= 41 && line.length <= 47) {
-        candidateLines.add(line);
+        otherCandidates.add(line);
       } else if (line.length >= 27 && line.length <= 33) {
-        candidateLines.add(line);
+        otherCandidates.add(line);
       }
     }
 
-    final deduped = <String>[];
-    for (final line in candidateLines) {
-      if (!deduped.contains(line)) deduped.add(line);
+    final result = <String>[];
+    for (final line in passportCandidates) {
+      if (!result.contains(line)) result.add(line);
     }
-    return deduped;
+    for (final line in idCandidates) {
+      if (!result.contains(line)) result.add(line);
+    }
+    for (final line in otherCandidates) {
+      if (!result.contains(line)) result.add(line);
+    }
+
+    return result;
   }
 
   double _alnumRatio(String s) {
