@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ocr_mrz/models/scan_result.dart';
@@ -17,6 +18,7 @@ class ResultsScreen extends StatefulWidget {
 class _ResultsScreenState extends State<ResultsScreen> {
   bool _saving = false;
   String? _status;
+  bool _copied = false;
 
   @override
   void initState() {
@@ -42,6 +44,29 @@ class _ResultsScreenState extends State<ResultsScreen> {
       setState(() => _status = 'Save failed: $e');
     } finally {
       setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _copyData() async {
+    final data = widget.scanResult.data;
+    final buffer = StringBuffer();
+    data.forEach((key, value) {
+      buffer.writeln('${_capitalize(key)}: $value');
+    });
+
+    final text = buffer.toString().trim();
+    if (kIsWeb) {
+      try {
+        if (html.window.navigator.clipboard != null) {
+          await html.window.navigator.clipboard!.writeText(text);
+          setState(() => _copied = true);
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) setState(() => _copied = false);
+          });
+        }
+      } catch (e) {
+        // clipboard not available
+      }
     }
   }
 
@@ -115,7 +140,12 @@ class _ResultsScreenState extends State<ResultsScreen> {
         title: Text(widget.scanResult.type == 'passport' ? 'Passport Result' : 'CPR / ID Result'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          if (_saving) const Padding(padding: EdgeInsets.all(16.0), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+          IconButton(
+            onPressed: _copied ? null : _copyData,
+            icon: Icon(_copied ? Icons.check : Icons.copy),
+            tooltip: _copied ? 'Copied' : 'Copy extracted data',
+          ),
+          if (_saving) const Padding(padding: EdgeInsets.all(16.0), child: SizedBox(width: 20, height: 20, child:CircularProgressIndicator(strokeWidth: 2)))
         ],
       ),
       body: SingleChildScrollView(
@@ -145,19 +175,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
             ),
             const SizedBox(height: 16),
             if (widget.imagePath.isNotEmpty)
-              kIsWeb
-                  ? Image.network(
-                      widget.imagePath,
-                      height: 200,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.broken_image, size: 100),
-                    )
-                  : Image.file(
-                      File(widget.imagePath),
-                      height: 200,
-                      fit: BoxFit.cover,
-                    ),
+              Image.network(
+                widget.imagePath,
+                height: 200,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.broken_image, size: 100),
+              ),
             const SizedBox(height: 16),
             ...fields,
             const SizedBox(height: 16),
@@ -196,9 +220,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ],
                 ),
               ),
-            const SizedBox(height: 16),
-            if (widget.scanResult.visualExtraction != null)
-              _buildVisualExtractionSection(),
           ],
         ),
       ),
@@ -208,41 +229,5 @@ class _ResultsScreenState extends State<ResultsScreen> {
   String _capitalize(String s) {
     if (s.isEmpty) return s;
     return s[0].toUpperCase() + s.substring(1);
-  }
-
-  Widget _buildVisualExtractionSection() {
-    final data = widget.scanResult.visualExtraction;
-    if (data == null || data.isEmpty) return const SizedBox.shrink();
-
-    final items = <Widget>[];
-    data.forEach((key, value) {
-      if (value == null) return;
-      final display = value.toString();
-      if (display.isEmpty) return;
-      items.add(
-        ListTile(
-          title: Text('Visual: ${_capitalize(key)}'),
-          subtitle: Text(display),
-          leading: const Icon(Icons.visibility, color: Colors.blue),
-        ),
-      );
-    });
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.purple.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.purple.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Visual Extraction:', style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          ...items,
-        ],
-      ),
-    );
   }
 }
