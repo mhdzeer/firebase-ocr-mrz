@@ -76,8 +76,8 @@ class MrzParserService {
   Map<String, dynamic>? parseCpr(List<String> lines) {
     try {
       final firstRaw = lines[0].replaceAll(' ', '');
-      final secondRaw = lines[1].replaceAll(' ', '');
-      final thirdRaw = lines[2].replaceAll(' ', '');
+      final secondRaw = lines.length >= 2 ? lines[1].replaceAll(' ', '') : '';
+      final thirdRaw = lines.length >= 3 ? lines[2].replaceAll(' ', '') : '';
 
       final first = _normalizeLine(firstRaw, 30);
       final second = _normalizeLine(secondRaw, 30);
@@ -142,12 +142,26 @@ class MrzParserService {
         return parsePassport(lines);
       }
     }
+    
+    if (lines.length >= 2) {
+      final first = lines[0].replaceAll(' ', '');
+      if (first.length >= 25 && first.length <= 35) {
+        final second = lines.length >= 2 ? lines[1].replaceAll(' ', '') : '';
+        final looksLikeCprLine = first.length >= 27 && first.length <= 33;
+        final twoLineCpr = second.length >= 25 && second.length <= 35;
+        if (looksLikeCprLine || twoLineCpr) {
+          return parseCpr(lines);
+        }
+      }
+    }
+    
     if (lines.length >= 3) {
       final first = lines[0].replaceAll(' ', '');
-      if (first.length >= 27 && first.length <= 33) {
+      if (first.length >= 25 && first.length <= 35) {
         return parseCpr(lines);
       }
     }
+    
     return null;
   }
 

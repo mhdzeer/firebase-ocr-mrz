@@ -18,7 +18,7 @@ class OcrService {
     if (rawText.isEmpty) return [];
     final lines = rawText
         .split(RegExp(r'\r?\n'))
-        .map((line) => line.trim())
+        .map((line) => line.trim().toUpperCase())
         .where((line) => line.isNotEmpty)
         .toList();
 
@@ -30,17 +30,15 @@ class OcrService {
 
     for (final line in cleanedLines) {
       final alnumRatio = _alnumRatio(line);
-      if (alnumRatio < 0.7) continue;
+      if (alnumRatio < 0.6) continue;
 
-      final upper = line.toUpperCase();
-
-      if (upper.startsWith('P<') && line.length >= 41 && line.length <= 47) {
+      if (line.startsWith('P<') && line.length >= 41 && line.length <= 47) {
         passportCandidates.add(line);
-      } else if ((upper.startsWith('ID') || upper.startsWith('I<')) && line.length >= 27 && line.length <= 33) {
+      } else if ((line.startsWith('ID') || line.startsWith('I<')) && line.length >= 25 && line.length <= 35) {
         idCandidates.add(line);
       } else if (line.length >= 41 && line.length <= 47) {
         otherCandidates.add(line);
-      } else if (line.length >= 27 && line.length <= 33) {
+      } else if (line.length >= 25 && line.length <= 35) {
         otherCandidates.add(line);
       }
     }
