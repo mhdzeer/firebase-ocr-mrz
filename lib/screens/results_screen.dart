@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ocr_mrz/models/scan_result.dart';
@@ -18,7 +17,6 @@ class ResultsScreen extends StatefulWidget {
 class _ResultsScreenState extends State<ResultsScreen> {
   bool _saving = false;
   String? _status;
-  bool _copied = false;
 
   @override
   void initState() {
@@ -47,29 +45,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
     }
   }
 
-  Future<void> _copyData() async {
-    final data = widget.scanResult.data;
-    final buffer = StringBuffer();
-    data.forEach((key, value) {
-      buffer.writeln('${_capitalize(key)}: $value');
-    });
-
-    final text = buffer.toString().trim();
-    if (kIsWeb) {
-      try {
-        if (html.window.navigator.clipboard != null) {
-          await html.window.navigator.clipboard!.writeText(text);
-          setState(() => _copied = true);
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) setState(() => _copied = false);
-          });
-        }
-      } catch (e) {
-        // clipboard not available
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final data = widget.scanResult.data;
@@ -79,7 +54,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       fields.add(
         ListTile(
           title: Text(_capitalize(key)),
-          subtitle: Text(value.toString()),
+          subtitle: SelectableText(value.toString()),
           leading: const Icon(Icons.info_outline),
         ),
       );
@@ -140,12 +115,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
         title: Text(widget.scanResult.type == 'passport' ? 'Passport Result' : 'CPR / ID Result'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          IconButton(
-            onPressed: _copied ? null : _copyData,
-            icon: Icon(_copied ? Icons.check : Icons.copy),
-            tooltip: _copied ? 'Copied' : 'Copy extracted data',
-          ),
-          if (_saving) const Padding(padding: EdgeInsets.all(16.0), child: SizedBox(width: 20, height: 20, child:CircularProgressIndicator(strokeWidth: 2)))
+          if (_saving) const Padding(padding: EdgeInsets.all(16.0), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
         ],
       ),
       body: SingleChildScrollView(
@@ -198,7 +168,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   children: [
                     Text('Full Visual OCR Text:', style: const TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text(widget.scanResult.rawOcrText!, maxLines: 10, overflow: TextOverflow.fade, softWrap: true),
+                    SelectableText(widget.scanResult.rawOcrText!, maxLines: 10),
                   ],
                 ),
               ),
