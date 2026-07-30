@@ -22,29 +22,104 @@
       try {
         console.log('[MRZ] Tesseract loaded:', typeof Tesseract !== 'undefined');
         console.log('[MRZ] input prefix:', (imagePathOrBase64 || '').slice(0, 40));
+        console.log('[MRZ] input length:', (imagePathOrBase64 || '').length);
 
         if (typeof Tesseract === 'undefined') {
           console.error('[MRZ] Tesseract not loaded');
           return '';
         }
 
-        let result;
+        let imageUrl = null;
         try {
-          result = await Tesseract.recognize(imagePathOrBase64, 'eng');
-          console.log('[MRZ] recognize completed');
+          imageUrl = await loadImageFromDataUrl(imagePathOrBase64);
+          console.log('[MRZ] image loaded');
         } catch (e) {
-          console.error('[MRZ] recognize failed:', e);
-          return '';
+          console.error('[MRZ] image load failed:', e);
         }
 
-        const text = (result && result.data && result.data.text) ? result.data.text : '';
-        console.log('[MRZ] result preview:', text.slice(0, 500));
-        return text;
+        let text = '';
+        if (imageUrl) {
+          try {
+            const cropDataUrl = await cropToMrzRegion(imageUrl);
+            if (cropDataUrl) {
+              console.log('[MRZ] trying cropped MRZ region');
+              text = await recognizeWithTesseract(cropDataUrl);
+              console.log('[MRZ] cropped result length:', text.length);
+            }
+          } catch (e) {
+            console.error('[MRZ] crop recognize failed:', e);
+          }
+        }
+
+        if ((text ?? '').trim().isEmpty && imageUrl) {
+          try {
+            console.log('[MRZ] trying full image as fallback');
+            text = await recognizeWithTesseract(imagePathOrBase64);
+            console.log('[MRZ] fallback result length:', text.length);
+          } catch (e) {
+            console.error('[MRZ] fallback recognize failed:', e);
+          }
+        }
+
+        return text ?? '';
       } catch (e) {
         console.error('[MRZ] unexpected error:', e);
         return '';
       }
     };
+
+    async function loadImageFromDataUrl(dataUrl) {
+      return new Promise((resolve, reject) => {
+        try {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = (e) => reject(e);
+          img.src = dataUrl;
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+
+    async function cropToMrzRegion(imageElement) {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+
+        const h = imageElement.naturalHeight || imageElement.height;
+        const w = imageElement.naturalWidth || imageElement.width;
+        
+        const cropHeight = Math.max(80, Math.floor(h * 0.22));
+        const cropY = Math.max(0, h - cropHeight);
+        
+        canvas.width = w;
+        canvas.height = cropHeight;
+        ctx.drawImage(imageElement, 0, cropY, w, cropHeight, 0, 0, w, cropHeight);
+        
+        return canvas.toDataURL('image/jpeg', 0.92);
+      } catch (e) {
+        console.error('[MRZ] crop failed:', e);
+        return null;
+      }
+    }
+
+    async function recognizeWithTesseract(imageInput) {
+      return new Promise((resolve, reject) => {
+        try {
+          Tesseract.recognize(imageInput, 'eng', {
+            logger: (m) => {}
+          }).then((result) => {
+            const text = (result && result.data && result.data.text) ? result.data.text : '';
+            resolve(text);
+          }).catch((e) => {
+            reject(e);
+          });
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
   </script>
   
   <style>
