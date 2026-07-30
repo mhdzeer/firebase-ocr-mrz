@@ -6,26 +6,24 @@ class MrzParserService {
       final line1Raw = lines[0].replaceAll(' ', '');
       final line2Raw = lines[1].replaceAll(' ', '');
 
-      if (line1Raw.length < 41 || line1Raw.length > 47) return null;
-      if (line2Raw.length < 41 || line2Raw.length > 47) return null;
-
-      final line1 = line1Raw.padRight(44, '<').substring(0, 44);
-      final line2 = line2Raw.padRight(44, '<').substring(0, 44);
+      final line1 = _normalizeLine(line1Raw, 44);
+      final line2 = _normalizeLine(line2Raw, 44);
 
       final docType = line1.substring(0, 2);
       final countryCode = line1.substring(2, 5);
-      final lastNameRaw = line1.substring(5, 44);
-      final lastName = lastNameRaw.replaceAll('<', ' ').trim();
+      final lastNameRaw = line1.substring(5, 44).replaceAll('<', ' ').trim();
 
-      final nameParts = lastName.split(' ').where((s) => s.isNotEmpty).toList();
+      final nameParts = lastNameRaw.split(' ').where((s) => s.isNotEmpty).toList();
       final parsedLastName = nameParts.isNotEmpty ? nameParts.removeAt(0) : '';
       final parsedFirstName = nameParts.join(' ');
 
-      final docNumber = line2.substring(0, 9);
+      final docNumber = line2.substring(0, 9).replaceAll('<', '').trim();
       final nationality = line2.substring(10, 13);
       final birthDateRaw = line2.substring(13, 19);
       final sex = line2.substring(20, 21);
       final expiryDateRaw = line2.substring(21, 27);
+
+      final optionalData = line2.substring(28).replaceAll('<', '').trim();
 
       return {
         'documentType': 'passport',
@@ -37,7 +35,7 @@ class MrzParserService {
         'birthDate': _formatDate(birthDateRaw),
         'sex': sex == 'M' ? 'male' : sex == 'F' ? 'female' : 'unknown',
         'expirationDate': _formatDate(expiryDateRaw),
-        'optionalData': line2.length > 28 ? line2.substring(28) : '',
+        'optionalData': optionalData,
       };
     } catch (e) {
       return null;
@@ -50,15 +48,11 @@ class MrzParserService {
       final secondRaw = lines[1].replaceAll(' ', '');
       final thirdRaw = lines[2].replaceAll(' ', '');
 
-      if (firstRaw.length < 27 || firstRaw.length > 33) return null;
-      if (secondRaw.length < 27 || secondRaw.length > 33) return null;
-      if (thirdRaw.length < 27 || thirdRaw.length > 33) return null;
+      final first = _normalizeLine(firstRaw, 30);
+      final second = _normalizeLine(secondRaw, 30);
+      final third = _normalizeLine(thirdRaw, 30);
 
-      final first = firstRaw.padRight(30, '<').substring(0, 30);
-      final second = secondRaw.padRight(30, '<').substring(0, 30);
-      final third = thirdRaw.padRight(30, '<').substring(0, 30);
-
-      final docNumber = first.substring(0, 9);
+      final docNumber = first.substring(0, 9).replaceAll('<', '').trim();
       final nationality = first.substring(10, 13);
       final birthDate = first.substring(13, 19);
       final sex = first.substring(20, 21);
@@ -80,6 +74,14 @@ class MrzParserService {
     } catch (e) {
       return null;
     }
+  }
+
+  String _normalizeLine(String raw, int expectedLength) {
+    final cleaned = raw.replaceAll(' ', '');
+    if (cleaned.length >= expectedLength) {
+      return cleaned.substring(0, expectedLength);
+    }
+    return cleaned.padRight(expectedLength, '<');
   }
 
   String _formatDate(String yymmdd) {
